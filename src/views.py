@@ -89,3 +89,36 @@ async def get_files(request_code: int, db: Session = Depends(session.get_db)):
     )
 
     return imgs
+
+
+@router.delete("/frame/{request_code}", response_model=list[schemas.ShowImageFile])
+async def delete_files(request_code: int, db: Session = Depends(session.get_db)):
+    """
+    Delete data from the database and corresponding image from data/ folder,
+    matching request code.
+    """
+
+    imgs = (
+        db.query(models.Inbox)
+        .filter(models.Inbox.request_code == str(request_code))
+        .all()
+    )
+
+    files_to_delete = [
+        os.path.join(
+            DATA_PATH,
+            img.registration_date_time.strftime("%Y%m%d"),
+            img.filename
+        ) for img in imgs
+    ]
+
+    for file in files_to_delete:
+        os.remove(file)
+
+    (db.query(models.Inbox)
+       .filter(models.Inbox.request_code == str(request_code))
+       .delete())
+
+    db.commit()
+
+    return imgs
