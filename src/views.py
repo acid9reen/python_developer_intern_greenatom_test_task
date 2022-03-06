@@ -7,7 +7,7 @@ import fastapi
 from fastapi import UploadFile, Depends
 from sqlalchemy.orm import Session
 
-from src import models, session
+from src import models, session, schemas
 
 
 DATA_PATH = r"data/"
@@ -72,3 +72,20 @@ async def create_upload_files(
     write_to_db(request_code, img_names, time, db=db)
 
     return 201
+
+
+@router.get("/frame/{request_code}", response_model=list[schemas.ShowImageFile])
+async def get_files(request_code: int, db: Session = Depends(session.get_db)):
+    """
+    Return a list of images in JSON format (including
+    date and time of registration and file names),
+    matching request code.
+    """
+
+    imgs = (
+        db.query(models.Inbox)
+        .filter(models.Inbox.request_code == str(request_code))
+        .all()
+    )
+
+    return imgs
