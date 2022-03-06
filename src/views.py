@@ -1,0 +1,74 @@
+import datetime as dt
+import os
+import shutil
+import uuid
+
+import fastapi
+from fastapi import UploadFile, Depends
+from sqlalchemy.orm import Session
+
+from src import models, session
+
+
+DATA_PATH = r"data/"
+
+router = fastapi.APIRouter()
+
+
+def save_files(
+    files: list[UploadFile], img_names: list[str], time: dt.datetime
+) -> None:
+    """
+    Save files as DATA_PATH/<date(YYYYMMDD)>/filename
+    """
+
+    cur_date = time.strftime("%Y%m%d")
+    img_dir = os.path.join(DATA_PATH, cur_date)
+
+    if not os.path.isdir(img_dir):
+        os.makedirs(img_dir)
+
+    for file, name in zip(files, img_names):
+        with open(os.path.join(img_dir, name), "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+
+def write_to_db(
+    request_code: str, img_names: list[str], time: dt.datetime, db: Session
+) -> None:
+    """
+    Construct Inbox models from input and write them to database.
+    """
+
+    entries = [
+        models.Inbox(
+            request_code=request_code, filename=img_name, registration_date_time=time
+        )
+        for img_name in img_names
+    ]
+
+    db.add_all(entries)
+    db.commit()
+
+
+@router.put("/frame/", status_code=201)
+async def create_upload_files(
+    request_code: str, images: list[UploadFile], db: Session = Depends(session.get_db)
+) -> int:
+    """
+    Save the input files to a folder
+    /data/<date in YYYYMMDD format>/ with names <GUID>.jpg
+    and commit to the database in the inbox table
+    with structure
+    <request code> | <name of saved file> | <date/time of registration>.
+
+    Return status code 201.
+    """
+
+    time = dt.datetime.today()
+    img_names = [str(uuid.uuid4()) + ".jpg" for __ in images]
+
+    save_files(images, img_names, time)
+    write_to_db(request_code, img_names, time, db=db)
+
+    return 201
