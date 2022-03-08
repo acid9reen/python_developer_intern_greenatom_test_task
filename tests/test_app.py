@@ -74,11 +74,14 @@ def random_files():
 @pytest.fixture
 def test_folder():
     """
+    Override data folder
     Return folder name to write output to
     Remove the folder after all operations
     """
 
     folder = "test_data"
+    views.DATA_PATH = folder
+
     yield folder
     shutil.rmtree(folder)
 
@@ -96,9 +99,6 @@ def test_create_files(
         * Matching names of files in the database and created ones
         * File contents correctness
     """
-
-    # Override output directory
-    views.DATA_PATH = test_folder
 
     files = [("images", file) for file in random_files]
     resp = test_client.put(f"frame/?request_code={request_code}", files=files)
@@ -153,9 +153,6 @@ def test_get_files(
     Make put request to upload files, than get them and check similarity
     """
 
-    # Override output directory
-    views.DATA_PATH = test_folder
-
     files = [("images", file) for file in random_files]
     test_client.put(f"frame/?request_code={request_code}", files=files)
 
@@ -185,9 +182,6 @@ def test_delete_files(
     Make put request to upload files,
     than checks if files in folder and database entries are deleted
     """
-
-    # Override output directory
-    views.DATA_PATH = test_folder
 
     files = [("images", file) for file in random_files]
     test_client.put(f"frame/?request_code={request_code}", files=files)
