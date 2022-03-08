@@ -181,9 +181,7 @@ def test_create_files_expect_request_code_and_date_in_database_are_identical_to_
     imgs = [schemas.ImageFile.from_orm(entry) for entry in entries]
 
     for img in imgs:
-        assert img.request_code == str(
-            request_code
-        ), "Wrong database request code writing"
+        assert img.request_code == request_code, "Wrong database request code writing"
 
         assert dt.datetime.strftime(img.registration_date_time, "%Y%m%d") == date
 

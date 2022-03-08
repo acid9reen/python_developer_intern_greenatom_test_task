@@ -8,7 +8,6 @@ Base = declarative_base()
 class Inbox(Base):
     __tablename__ = "inbox"
 
-    id = Column(Integer, primary_key=True)
-    request_code = Column(String)
-    filename = Column(String)
+    request_code = Column(Integer)
+    filename = Column(String, primary_key=True)
     registration_date_time = Column(DateTime)

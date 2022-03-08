@@ -12,7 +12,7 @@ class ShowImageFile(BaseModel):
 
 
 class ImageFile(BaseModel):
-    request_code: str
+    request_code: int
     filename: str
     registration_date_time: dt.datetime
 

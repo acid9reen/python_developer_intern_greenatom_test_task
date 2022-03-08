@@ -34,7 +34,7 @@ def save_files(
 
 
 def write_to_db(
-    request_code: str, img_names: list[str], time: dt.datetime, db: Session
+    request_code: int, img_names: list[str], time: dt.datetime, db: Session
 ) -> None:
     """
     Construct Inbox models from input and write them to database.
@@ -53,7 +53,7 @@ def write_to_db(
 
 @router.put("/frame/", status_code=201)
 async def create_upload_files(
-    request_code: str, images: list[UploadFile], db: Session = Depends(session.get_db)
+    request_code: int, images: list[UploadFile], db: Session = Depends(session.get_db)
 ) -> int:
     """
     Save the input files to a folder
@@ -84,7 +84,7 @@ async def get_files(request_code: int, db: Session = Depends(session.get_db)):
 
     imgs = (
         db.query(models.Inbox)
-        .filter(models.Inbox.request_code == str(request_code))
+        .filter(models.Inbox.request_code == request_code)
         .all()
     )
 
@@ -100,7 +100,7 @@ async def delete_files(request_code: int, db: Session = Depends(session.get_db))
 
     imgs = (
         db.query(models.Inbox)
-        .filter(models.Inbox.request_code == str(request_code))
+        .filter(models.Inbox.request_code == request_code)
         .all()
     )
 
@@ -116,7 +116,7 @@ async def delete_files(request_code: int, db: Session = Depends(session.get_db))
         os.remove(file)
 
     (db.query(models.Inbox)
-       .filter(models.Inbox.request_code == str(request_code))
+       .filter(models.Inbox.request_code == request_code)
        .delete())
 
     db.commit()
