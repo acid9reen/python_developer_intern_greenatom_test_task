@@ -9,3 +9,12 @@ class ShowImageFile(BaseModel):
 
     class Config():
         orm_mode = True
+
+
+class ImageFile(BaseModel):
+    request_code: str
+    filename: str
+    registration_date_time: dt.datetime
+
+    class Config():
+        orm_mode = True
