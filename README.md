@@ -10,7 +10,7 @@
 | `/frame/<request_code>` | GET    | Return a list of images in JSON format (including date and time of registration and file names), matching request code. |
 | `frame/<request_code>`  | DELETE | Delete data from the database and corresponding image from data/ folder, matching request code. |
 
-- [ ] Implement unit tests for full functionality coverage.
+- [x] Implement unit tests for full functionality coverage.
 - [ ] (Optional) Implement web service authentication for access restrictions.
 
 ## Configure and run
