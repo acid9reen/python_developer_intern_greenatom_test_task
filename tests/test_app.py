@@ -102,65 +102,93 @@ def date():
     return dt.datetime.strftime(dt.datetime.today(), "%Y%m%d")
 
 
-def test_create_files(
-    test_db: Session,
-    request_code: int,
-    random_files: list[bytes],
-    test_folder: str,
+def test_create_files_expect_status_code_is_201(
     upload_files: requests.models.Response,
 ) -> None:
     """
-    Fully check /frame/ put request.
-    Checks:
-        * Response status code
-        * Database request code, filename and date writing correctness
-        * Output folder creation and writing to it
-        * Matching names of files in the database and created ones
-        * File contents correctness
+    Check if response status code of /frame/<request_code> is 201
     """
 
-    assert upload_files.status_code == 201, "Request error"
+    assert upload_files.status_code == 201
+
+
+def test_create_files_expect_output_folder_is_created(
+    upload_files: requests.models.Response, test_folder, date
+) -> None:
+    """
+    Check if output folder have been created
+    """
+
+    assert os.path.isdir(
+        os.path.join(test_folder, date)
+    ), "Output folder does not exist"
+
+
+def test_create_files_expect_identical_filenames_in_folder_and_in_database(
+    upload_files: requests.models.Response,
+    test_db: Session,
+    date: str,
+    test_folder: str,
+):
+    """
+    Check if filenames in folder and in database is identical
+    """
 
     # Get img schemas from database
     entries = test_db.query(models.Inbox).all()
     imgs = [schemas.ImageFile.from_orm(entry) for entry in entries]
-    cur_date = dt.datetime.strftime(dt.datetime.today(), "%Y%m%d")
 
-    # Check for database request_code writing correctness
-    # Check for database date writing correctness
-    for img in imgs:
-        assert img.request_code == str(
-            request_code
-        ), "Wrong database request code writing"
-
-        assert dt.datetime.strftime(img.registration_date_time, "%Y%m%d") == cur_date
-
-    # Check for folder creation
-    assert os.path.isdir(
-        os.path.join(test_folder, cur_date)
-    ), "Output folder does not exist"
-
-    # Check for written filenames correctness
-    filenames = os.listdir(os.path.join(views.DATA_PATH, cur_date))
+    filenames = os.listdir(os.path.join(test_folder, date))
     img_names = [img.filename for img in imgs]
 
     assert set(filenames) == set(
         img_names
     ), "Mismatching filenames in folder and in database"
 
-    # Check for file contents correctness
+
+def test_create_files_expect_written_content_is_identical_to_uploaded_data(
+    upload_files: requests.models.Response,
+    date: str,
+    test_folder: str,
+    random_files: list[bytes],
+) -> None:
+    """
+    Check if written images' content is identical to uploaded one
+    """
+
+    filenames = os.listdir(os.path.join(test_folder, date))
+
     for filename in filenames:
-        with open(
-            os.path.join(views.DATA_PATH, cur_date, filename), "rb"
-        ) as written_img:
+        with open(os.path.join(test_folder, date, filename), "rb") as written_img:
             # Check for inclusion due to file disorder
             assert written_img.read() in random_files
+
+
+def test_create_files_expect_request_code_and_date_in_database_are_identical_to_uploaded(
+    upload_files: requests.models.Response,
+    date: str,
+    test_db: Session,
+    request_code: int,
+) -> None:
+    """
+    Check if request_code and date is identical to given
+    """
+
+    entries = test_db.query(models.Inbox).all()
+    imgs = [schemas.ImageFile.from_orm(entry) for entry in entries]
+
+    for img in imgs:
+        assert img.request_code == str(
+            request_code
+        ), "Wrong database request code writing"
+
+        assert dt.datetime.strftime(img.registration_date_time, "%Y%m%d") == date
 
 
 def test_get_files(
     test_db: Session,
     upload_files: requests.models.Response,
-    request_code,
+    request_code: int,
     client: TestClient,
 ) -> None:
     """
