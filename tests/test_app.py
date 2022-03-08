@@ -139,3 +139,34 @@ def test_create_files(
         ) as written_img:
             # Check for inclusion due to file disorder
             assert written_img.read() in random_files
+
+
+def test_get_files(
+    test_db: Session, request_code: int, random_files: list[bytes], test_folder: str
+) -> None:
+    """
+    Check /frame/<request_code> get method
+
+    Checks:
+        * Correctness of returned by get method files' representations
+
+    Make put request to upload files, than get them and check similarity
+    """
+
+    # Override output directory
+    views.DATA_PATH = test_folder
+
+    files = [("images", file) for file in random_files]
+    test_client.put(f"frame/?request_code={request_code}", files=files)
+
+    entries = test_db.query(models.Inbox).all()
+    imgs = [schemas.ShowImageFile.from_orm(entry) for entry in entries]
+
+    resp = test_client.get(f"frame/{request_code}")
+    db_imgs = [
+        schemas.ShowImageFile(**show_image_file) for show_image_file in resp.json()
+    ]
+
+    assert sorted(imgs, key=lambda img: img.filename) == sorted(
+        db_imgs, key=lambda img: img.filename
+    ), "Wrong get result"
