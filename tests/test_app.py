@@ -86,6 +86,16 @@ def test_folder():
     shutil.rmtree(folder)
 
 
+@pytest.fixture
+def upload_files(request_code: int, random_files: list[bytes], test_folder: str):
+    """
+    Prepare test space by uploading files
+    """
+
+    files = [("images", file) for file in random_files]
+    test_client.put(f"frame/?request_code={request_code}", files=files)
+
+
 def test_create_files(
     test_db: Session, request_code: int, random_files: list[bytes], test_folder: str
 ) -> None:
@@ -141,9 +151,7 @@ def test_create_files(
             assert written_img.read() in random_files
 
 
-def test_get_files(
-    test_db: Session, request_code: int, random_files: list[bytes], test_folder: str
-) -> None:
+def test_get_files(test_db: Session, upload_files, request_code) -> None:
     """
     Check /frame/<request_code> get method
 
@@ -152,9 +160,6 @@ def test_get_files(
 
     Make put request to upload files, than get them and check similarity
     """
-
-    files = [("images", file) for file in random_files]
-    test_client.put(f"frame/?request_code={request_code}", files=files)
 
     entries = test_db.query(models.Inbox).all()
     imgs = [schemas.ShowImageFile.from_orm(entry) for entry in entries]
@@ -170,7 +175,7 @@ def test_get_files(
 
 
 def test_delete_files(
-    test_db: Session, request_code: int, random_files: list[bytes], test_folder: str
+    test_db: Session, request_code: int, upload_files, test_folder: str
 ) -> None:
     """
     Check /frame/<request_code> delete method
@@ -183,8 +188,6 @@ def test_delete_files(
     than checks if files in folder and database entries are deleted
     """
 
-    files = [("images", file) for file in random_files]
-    test_client.put(f"frame/?request_code={request_code}", files=files)
     test_client.delete(f"frame/{request_code}")
 
     # Check for database cleanup
