@@ -24,7 +24,7 @@ models.Base.metadata.create_all(bind=engine)
 
 
 @pytest.fixture
-def test_db():
+def test_db() -> Generator[Session, Any, None]:
     connection = engine.connect()
     transaction = connection.begin()
     session = TestingSessionLocal(bind=connection)
@@ -37,8 +37,8 @@ def test_db():
 
 
 @pytest.fixture
-def client(test_db):
-    def override_get_db():
+def client(test_db: Session) -> Generator[TestClient, Any, None]:
+    def override_get_db() -> Generator[Session, Any, None]:
         yield test_db
 
     app = FastAPI()
@@ -49,7 +49,7 @@ def client(test_db):
 
 
 @pytest.fixture
-def request_code():
+def request_code() -> int:
     """
     Return random integer
     """
@@ -58,7 +58,7 @@ def request_code():
 
 
 @pytest.fixture
-def random_files():
+def random_files() -> list[bytes]:
     """
     Create random sized list of random bytes
     """
@@ -69,7 +69,7 @@ def random_files():
 
 
 @pytest.fixture
-def test_folder():
+def test_folder() -> Generator[str, Any, None]:
     """
     Override data folder
     Return folder name to write output to
@@ -98,7 +98,10 @@ def upload_files(
 
 
 @pytest.fixture
-def date():
+def date() -> str:
+    """
+    Return current date as string in YYYYMMDD format
+    """
     return dt.datetime.strftime(dt.datetime.today(), "%Y%m%d")
 
 
@@ -129,7 +132,7 @@ def test_create_files_expect_identical_filenames_in_folder_and_in_database(
     test_db: Session,
     date: str,
     test_folder: str,
-):
+) -> None:
     """
     Check if filenames in folder and in database is identical
     """
