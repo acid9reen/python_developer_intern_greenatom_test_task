@@ -170,3 +170,34 @@ def test_get_files(
     assert sorted(imgs, key=lambda img: img.filename) == sorted(
         db_imgs, key=lambda img: img.filename
     ), "Wrong get result"
+
+
+def test_delete_files(
+    test_db: Session, request_code: int, random_files: list[bytes], test_folder: str
+) -> None:
+    """
+    Check /frame/<request_code> delete method
+
+    Checks:
+        * Database cleanup
+        * Output folder cleanup
+
+    Make put request to upload files,
+    than checks if files in folder and database entries are deleted
+    """
+
+    # Override output directory
+    views.DATA_PATH = test_folder
+
+    files = [("images", file) for file in random_files]
+    test_client.put(f"frame/?request_code={request_code}", files=files)
+    test_client.delete(f"frame/{request_code}")
+
+    # Check for database cleanup
+    imgs = test_db.query(models.Inbox).all()
+    assert imgs == [], "Database entries haven't been deleted"
+
+    # Check for output folder cleanup
+    cur_date = dt.datetime.strftime(dt.datetime.today(), "%Y%m%d")
+    written_files = os.listdir(os.path.join(test_folder, cur_date))
+    assert written_files == [], "Files in output folder haven't been deleted"
