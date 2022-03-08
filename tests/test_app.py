@@ -174,27 +174,28 @@ def test_get_files(test_db: Session, upload_files, request_code) -> None:
     ), "Wrong get result"
 
 
-def test_delete_files(
+def test_delete_files_expect_output_folder_is_empty(
     test_db: Session, request_code: int, upload_files, test_folder: str
 ) -> None:
     """
-    Check /frame/<request_code> delete method
-
-    Checks:
-        * Database cleanup
-        * Output folder cleanup
-
-    Make put request to upload files,
-    than checks if files in folder and database entries are deleted
+    Check if files in output folder have been deleted
     """
 
     test_client.delete(f"frame/{request_code}")
 
-    # Check for database cleanup
-    imgs = test_db.query(models.Inbox).all()
-    assert imgs == [], "Database entries haven't been deleted"
-
-    # Check for output folder cleanup
     cur_date = dt.datetime.strftime(dt.datetime.today(), "%Y%m%d")
     written_files = os.listdir(os.path.join(test_folder, cur_date))
     assert written_files == [], "Files in output folder haven't been deleted"
+
+
+def test_delete_files_expect_database_inbox_table_is_empty(
+    test_db: Session, request_code: int, upload_files
+) -> None:
+    """
+    Check if database entires have been deleted
+    """
+
+    test_client.delete(f"frame/{request_code}")
+
+    imgs = test_db.query(models.Inbox).all()
+    assert imgs == [], "Database entries haven't been deleted"
