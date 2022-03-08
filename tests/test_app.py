@@ -8,47 +8,44 @@ import os
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+import requests
 import sqlalchemy
 from sqlalchemy.orm import sessionmaker, Session
 
-from src import models, schemas, session, views
+from src import models, schemas, views
+from src.session import get_db
 
 
 DATABASE_URL = "postgresql://postgres:admin@127.0.0.1:5432/test"
 engine = sqlalchemy.create_engine(DATABASE_URL)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+models.Base.metadata.drop_all(bind=engine)
 models.Base.metadata.create_all(bind=engine)
-
-
-def override_get_db() -> Generator[Session, Any, None]:
-    db = TestingSessionLocal()
-
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-app = FastAPI()
-app.include_router(views.router)
-
-app.dependency_overrides[session.get_db] = override_get_db
-
-test_client = TestClient(app)
 
 
 @pytest.fixture
 def test_db():
-    """
-    Return Session object to interact with database
-    Delete all rows of table Inbox after all operations
-    """
+    connection = engine.connect()
+    transaction = connection.begin()
+    session = TestingSessionLocal(bind=connection)
 
-    db = next(override_get_db())
-    yield db
-    # Delete all cerated database entries
-    db.query(models.Inbox).delete()
-    db.commit()
+    yield session
+
+    session.close()
+    transaction.rollback()
+    connection.close()
+
+
+@pytest.fixture
+def client(test_db):
+    def override_get_db():
+        yield test_db
+
+    app = FastAPI()
+    app.include_router(views.router)
+    app.dependency_overrides[get_db] = override_get_db
+    yield TestClient(app)
+    del app.dependency_overrides[get_db]
 
 
 @pytest.fixture
@@ -87,21 +84,33 @@ def test_folder():
 
 
 @pytest.fixture
-def upload_files(request_code: int, random_files: list[bytes], test_folder: str):
+def upload_files(
+    client: TestClient, request_code: int, random_files: list[bytes], test_folder: str
+):
     """
     Prepare test space by uploading files
     """
 
     files = [("images", file) for file in random_files]
-    test_client.put(f"frame/?request_code={request_code}", files=files)
+    resp = client.put(f"frame/?request_code={request_code}", files=files)
+
+    return resp
+
+
+@pytest.fixture
+def date():
+    return dt.datetime.strftime(dt.datetime.today(), "%Y%m%d")
 
 
 def test_create_files(
-    test_db: Session, request_code: int, random_files: list[bytes], test_folder: str
+    test_db: Session,
+    request_code: int,
+    random_files: list[bytes],
+    test_folder: str,
+    upload_files: requests.models.Response,
 ) -> None:
     """
     Fully check /frame/ put request.
-
     Checks:
         * Response status code
         * Database request code, filename and date writing correctness
@@ -110,10 +119,7 @@ def test_create_files(
         * File contents correctness
     """
 
-    files = [("images", file) for file in random_files]
-    resp = test_client.put(f"frame/?request_code={request_code}", files=files)
-
-    assert resp.status_code == 201, "Request error"
+    assert upload_files.status_code == 201, "Request error"
 
     # Get img schemas from database
     entries = test_db.query(models.Inbox).all()
@@ -151,7 +157,12 @@ def test_create_files(
             assert written_img.read() in random_files
 
 
-def test_get_files(test_db: Session, upload_files, request_code) -> None:
+def test_get_files(
+    test_db: Session,
+    upload_files: requests.models.Response,
+    request_code,
+    client: TestClient,
+) -> None:
     """
     Check /frame/<request_code> get method
 
@@ -164,7 +175,7 @@ def test_get_files(test_db: Session, upload_files, request_code) -> None:
     entries = test_db.query(models.Inbox).all()
     imgs = [schemas.ShowImageFile.from_orm(entry) for entry in entries]
 
-    resp = test_client.get(f"frame/{request_code}")
+    resp = client.get(f"frame/{request_code}")
     db_imgs = [
         schemas.ShowImageFile(**show_image_file) for show_image_file in resp.json()
     ]
@@ -175,13 +186,16 @@ def test_get_files(test_db: Session, upload_files, request_code) -> None:
 
 
 def test_delete_files_expect_output_folder_is_empty(
-    test_db: Session, request_code: int, upload_files, test_folder: str
+    request_code: int,
+    upload_files: requests.models.Response,
+    client: TestClient,
+    test_folder: str,
 ) -> None:
     """
     Check if files in output folder have been deleted
     """
 
-    test_client.delete(f"frame/{request_code}")
+    client.delete(f"frame/{request_code}")
 
     cur_date = dt.datetime.strftime(dt.datetime.today(), "%Y%m%d")
     written_files = os.listdir(os.path.join(test_folder, cur_date))
@@ -189,13 +203,16 @@ def test_delete_files_expect_output_folder_is_empty(
 
 
 def test_delete_files_expect_database_inbox_table_is_empty(
-    test_db: Session, request_code: int, upload_files
+    test_db: Session,
+    request_code: int,
+    upload_files: requests.models.Response,
+    client: TestClient,
 ) -> None:
     """
     Check if database entires have been deleted
     """
 
-    test_client.delete(f"frame/{request_code}")
+    client.delete(f"frame/{request_code}")
 
     imgs = test_db.query(models.Inbox).all()
     assert imgs == [], "Database entries haven't been deleted"
