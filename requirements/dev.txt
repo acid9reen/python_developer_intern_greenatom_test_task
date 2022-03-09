@@ -14,18 +14,21 @@ asgiref==3.5.0
     #   uvicorn
 astroid==2.9.3
     # via pylint
-asyncpg==0.25.0
-    # via -r .\requirements\requirements.txt
 atomicwrites==1.4.0
     # via pytest
 attrs==21.4.0
     # via pytest
 black==22.1.0
     # via -r .\requirements\dev.in
+certifi==2021.10.8
+    # via requests
+charset-normalizer==2.0.12
+    # via requests
 click==8.0.4
     # via
     #   -r .\requirements\requirements.txt
     #   black
+    #   pip-tools
     #   uvicorn
 colorama==0.4.4
     # via
@@ -49,6 +52,7 @@ idna==3.3
     # via
     #   -r .\requirements\requirements.txt
     #   anyio
+    #   requests
 iniconfig==1.1.1
     # via pytest
 isort==5.10.1
@@ -63,6 +67,10 @@ packaging==21.3
     # via pytest
 pathspec==0.9.0
     # via black
+pep517==0.12.0
+    # via pip-tools
+pip-tools==6.5.1
+    # via -r .\requirements\dev.in
 platformdirs==2.5.1
     # via
     #   black
@@ -87,6 +95,8 @@ python-dotenv==0.19.2
     # via -r .\requirements\requirements.txt
 python-multipart==0.0.5
     # via -r .\requirements\requirements.txt
+requests==2.27.1
+    # via -r .\requirements\dev.in
 six==1.16.0
     # via
     #   -r .\requirements\requirements.txt
@@ -108,6 +118,7 @@ toml==0.10.2
 tomli==2.0.1
     # via
     #   black
+    #   pep517
     #   pytest
 typing-extensions==4.1.1
     # via
@@ -116,10 +127,15 @@ typing-extensions==4.1.1
     #   black
     #   pydantic
     #   pylint
+urllib3==1.26.8
+    # via requests
 uvicorn==0.17.5
     # via -r .\requirements\requirements.txt
+wheel==0.37.1
+    # via pip-tools
 wrapt==1.13.3
     # via astroid
 
 # The following packages are considered to be unsafe in a requirements file:
+# pip
 # setuptools

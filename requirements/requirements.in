@@ -1,4 +1,3 @@
-asyncpg
 databases
 fastapi
 psycopg2
