@@ -36,3 +36,25 @@ To run app:
 ```bash
 python main.py
 ```
+
+## Run tests
+
+### Before running
+
+To run tests you need to install development dependencies
+
+```bash
+pip install -r requirements/dev.txt
+```
+
+Add .env file with `TEST_DATABASE_URL` variable, containing database url in format
+
+`postgresql://postgres:<password>@<database IP address with port>/<test database name>`
+
+(NOTE: you need postgresql database installation)
+
+### Run tests
+
+```bash
+pytest .
+```

@@ -1,6 +1,8 @@
 import datetime as dt
+from dotenv import load_dotenv
 import random
 import shutil
+import sys
 from typing import Any
 from typing import Generator
 import os
@@ -16,7 +18,15 @@ from src import models, schemas, views
 from src.session import get_db
 
 
-DATABASE_URL = "postgresql://postgres:admin@127.0.0.1:5432/test"
+load_dotenv()
+DATABASE_URL = os.environ.get("TEST_DATABASE_URL", None)
+
+if not DATABASE_URL:
+    sys.exit(
+        "There is no TEST_DATABASE_URL in .env file or .env file does not exist.\n"
+        "Exiting..."
+    )
+
 engine = sqlalchemy.create_engine(DATABASE_URL)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 models.Base.metadata.drop_all(bind=engine)
