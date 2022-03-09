@@ -34,7 +34,7 @@ Add .env file with `DATABASE_URL` variable, containing database url in format
 To run app:
 
 ```bash
-python main.py
+uvicorn main:app
 ```
 
 ## Run tests
