@@ -41,10 +41,11 @@ uvicorn main:app
 
 ### Before running
 
-To run tests you need to install development dependencies
+To run tests you need to install development dependencies and module
 
 ```bash
 pip install -r requirements/dev.txt
+pip install .
 ```
 
 Add .env file with `TEST_DATABASE_URL` variable, containing database url in format
